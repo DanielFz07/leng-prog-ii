@@ -1,0 +1,5 @@
+# Ignorar archivos de Visual Studio
+.vscode/
+
+# Ignorar archivos de compilación
+exercises/builds/
