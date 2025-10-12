@@ -1,8 +1,3 @@
-/*
-    Realice un programa que reciba la tasa del dólar del día (BCV) en Bs y un
-    valor monetario en $ y retorne la conversión.
-    Ej: Tasa:189,32Bs * valorMonetario: 5$ = 946,60Bs (2 puntos). 
-*/
 #include <iostream>
 
 int main(void) 

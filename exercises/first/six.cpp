@@ -1,16 +1,3 @@
-/*
-    Se trata de escribir el algoritmo que permita emitir la factura
-    correspondiente a una compra de un artículo determinado, del que se
-    adquieren una o varias unidades. El IVA a aplicar es del 16% y si el
-    precio bruto (precio venta más IVA) es mayor de 54.300Bs, se debe
-    realizar un descuento del 10%. La factura a mostrar en pantalla debe
-    incluir:
-        a. Su nombre (El de usted, no uno ingresado por teclado).
-        b. SubTotal
-        c. IVA
-        d. Descuento
-        e. Total. 
-*/
 #include <iostream>
 
 int main(void)
@@ -26,10 +13,11 @@ int main(void)
 
     subtotal = quantity * price;
 
-    // Tengo entendido que el descuento se aplica al subtotal, es decir, al precio bruto (antes de impuestos)
-    if(subtotal > 54300) discount = subtotal * 0.10;
-
     iva = subtotal * 0.16;
+
+
+    if((subtotal + iva) > 54300) discount = (subtotal + iva) * 0.10;
+
     total = subtotal - discount + iva;
 
     std::cout << std::endl << "Nombre: Daniel Fuentes" << std::endl;

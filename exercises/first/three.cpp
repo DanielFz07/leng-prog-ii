@@ -1,7 +1,3 @@
-/*
-    Realice un programa que reciba 10 números por teclado y retorne su suma. 
-*/
-
 #include <iostream>
 
 int main(void) 

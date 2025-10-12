@@ -1,6 +1,3 @@
-/*
-    Escribir un algoritmo que lea un número y escriba su raíz cuadrada, su valor si se potencia a la 2, a la 3 y a la 5. 
-*/
 #include <iostream>
 #include <cmath>
 

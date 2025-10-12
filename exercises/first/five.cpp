@@ -1,9 +1,3 @@
-/*
-    Realice un programa que calcule el promedio de 5 notas ingresadas por
-    teclado y, basado en ese promedio, si es mayor que 10, retorne el
-    mensaje: “Usted está aprobado + SU NOMBRE”, de lo contrario retorne:
-    “Usted está reprobado + SU NOMBRE”.
-*/
 #include <iostream>
 #include <string>
 
