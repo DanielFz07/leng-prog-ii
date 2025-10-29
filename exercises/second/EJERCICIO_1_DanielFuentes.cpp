@@ -7,7 +7,7 @@
 
 int main(void)
 {
-    int balance = 500, operation = 0, value = 0;
+    long long int balance = 500, operation = 0, value = 0;
     char option = 'Y';
 
     do
