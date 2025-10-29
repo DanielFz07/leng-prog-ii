@@ -31,13 +31,8 @@ int main(void)
 			
 			const int distance = abs(random - number);
 			
-			if(distance == 0) 
-			{
-				std::cout << std::endl << "\033[32mHas adivinado el numero correctamente.\033[0m";
-				return 1;
-			}
-			
-			if(distance > 70) std::cout << std::endl<< "\033[34mCONGELADO. \033[0mVuelve a intentarlo." << std::endl;
+			if(distance == 0) std::cout << std::endl << "\033[32mHas adivinado el numero correctamente.\033[0m"<< std::endl;
+			else if(distance > 70) std::cout << std::endl<< "\033[34mCONGELADO. \033[0mVuelve a intentarlo." << std::endl;
 			else if(distance > 50) std::cout << std::endl<< "\033[34mMuy frio. \033[0mVuelve a intentarlo." << std::endl;
 			else if(distance > 30) std::cout << std::endl<< "\033[34mFrio. \033[0mVuelve a intentarlo." << std::endl;
 			else if(distance > 10) std::cout << std::endl<< "\033[34mTibio. \033[0mVuelve a intentarlo." << std::endl;
