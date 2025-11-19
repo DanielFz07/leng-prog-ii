@@ -1,4 +1,4 @@
-/*
+/* EJERCICIO 4
     Realice un programa que permita al usuario:
      *Convertir $ a Bs
      *Convertir Bs a Euros
