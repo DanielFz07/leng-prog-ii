@@ -17,27 +17,21 @@ using namespace std;
 
 int main(); //Prototipo
 
-struct Pos 
-{
-    int x, y;
-    bool operator==(const Pos& other) const { return x == other.x && y == other.y; }
-};
-
-struct Player 
-{
-    string name;
-    int score = 0;
-    int maxScore = 0;
-    int level = 1;
-};
-
 enum Dir { UP, DOWN, LEFT, RIGHT };
 
-std::vector<Pos> snake;  // Lista de posiciones: snake[0] es la cabeza de la serpiente
-std::vector<Pos> obstacles; // Vector para almacenar los obstaculos
-std::vector<Player> players; // Vector para almacenar los nombres y datos de los jugadores
+std::vector<int> snakeX;
+std::vector<int> snakeY;
+
+std::vector<int> obstaclesX;
+std::vector<int> obstaclesY;
+
+std::vector<string> playerNames; //Vector que almacena el nombre de cada jugador
+std::vector<int> playerScores; //Vector que almacena la puntuacion de cada jugador
+std::vector<int> playerMaxScores; //Vector que almacena la puntuacion maxima de cada jugador
+std::vector<int> playerLevels; //Vector que almacena el nivel de cada jugador
+
 Dir dir = RIGHT;         // Direccion inicial
-Pos food;                // Posicion de comida
+int foodX, foodY;        // Posicion de comida
 bool gameOver = false;   // Flag de fin
 
 // Variables globales para niveles
@@ -147,9 +141,55 @@ void DrawSnake()
         }
     }
 
-    for (size_t i = 0; i < snake.size(); ++i) 
+    for (size_t i = 0; i < snakeX.size(); ++i) 
     {
-        DrawConsole(snake[i].x, snake[i].y, (i == 0 ? head : "█"));
+        DrawConsole(snakeX[i], snakeY[i], (i == 0 ? head : "█"));
+    }
+}
+
+bool checkCollision(int x, int y, const vector<int>& vx, const vector<int>& vy) 
+{
+    for(size_t i=0; i<vx.size(); ++i) 
+    {
+        if(vx[i] == x && vy[i] == y) return true;
+    }
+    return false;
+}
+
+void generateFood() 
+{
+    do 
+    {
+        foodX = rand() % anchoTablero;
+        foodY = rand() % altoTablero;
+
+        if(foodX == 0) foodX = 1;
+        if(foodY == 0) foodY = 1;
+    } 
+    while (checkCollision(foodX, foodY, snakeX, snakeY) || checkCollision(foodX, foodY, obstaclesX, obstaclesY)); 
+}
+
+void generateObstacles(int level) 
+{
+    obstaclesX.clear();
+    obstaclesY.clear();
+    int numObstacles = level; 
+
+    for(int i = 0; i < numObstacles; ++i) 
+    {
+        int obsX, obsY;
+        do 
+        {
+            obsX = rand() % anchoTablero;
+            obsY = rand() % altoTablero;
+
+            if (obsX == 0) obsX = 1;
+            if (obsY == 0) obsY = 1;
+        } 
+        while(checkCollision(obsX, obsY, snakeX, snakeY) || (obsX == foodX && obsY == foodY) || checkCollision(obsX, obsY, obstaclesX, obstaclesY));
+
+        obstaclesX.push_back(obsX);
+        obstaclesY.push_back(obsY);
     }
 }
 
@@ -163,20 +203,19 @@ void DrawTable()
         {
             if (colums == 0 || colums == anchoTablero + 1 || rows == 0 || rows == altoTablero + 1) 
             {
-                /*if (colums == 0 && rows == 0) DrawConsole(colums, rows, "┌");
-                else if (colums == anchoTablero + 1 && rows == 1) DrawConsole(colums, rows, "┐");
+                if (colums == 0 && rows == 0) DrawConsole(colums, rows, "┌");
+                else if (colums == anchoTablero + 1 && rows == 0) DrawConsole(colums, rows, "┐");
                 else if (colums == 0 && rows == altoTablero + 1) DrawConsole(colums, rows, "└");
-                else if (colums == anchoTablero + 1 && rows == altoTablero + 1) DrawConsole(colums, rows, "┘");*/
-                if (rows == 0) DrawConsole(colums, rows, "▁");
-                else if( rows == altoTablero + 1) DrawConsole(colums, rows, "▔");
-                else DrawConsole(colums, rows, "┃");
+                else if (colums == anchoTablero + 1 && rows == altoTablero + 1) DrawConsole(colums, rows, "┘");
+                else if (rows == 0 || rows == altoTablero + 1) DrawConsole(colums, rows, "─");
+                else DrawConsole(colums, rows, "│");
             }
         }
     }
     // Mostrar datos del jugador
-    DrawConsole(anchoTablero+5, 0, "Nivel: " + to_string(players[selectedPlayer].level));
-    DrawConsole(anchoTablero+5, 1, "Jugador: " + players[selectedPlayer].name);
-    DrawConsole(anchoTablero+5, 2, "Puntos: " + to_string(players[selectedPlayer].score), true);
+    DrawConsole(anchoTablero+5, 0, "Nivel: " + to_string(playerLevels[selectedPlayer]));
+    DrawConsole(anchoTablero+5, 1, "Jugador: " + playerNames[selectedPlayer]);
+    DrawConsole(anchoTablero+5, 2, "Puntos: " + to_string(playerScores[selectedPlayer]), true);
 
     DrawConsole (anchoTablero+5, 4, "Controles:", true);
     DrawConsole (anchoTablero+5, 5, "W/A/S/D o", true);
@@ -187,75 +226,47 @@ void DrawTable()
     #endif
 }
 
-void generateFood() 
-{
-    do 
-    {
-        food.x = rand() % anchoTablero;
-        food.y = rand() % altoTablero;
-
-        if(food.x == 0) food.x = 1;
-        if(food.y == 0) food.y = 1;
-    } 
-    while (std::find(snake.begin(), snake.end(), food) != snake.end() || std::find(obstacles.begin(), obstacles.end(), food) != obstacles.end()); // No en serpiente u obstaculos
-}
-
-void generateObstacles(int level) 
-{
-    obstacles.clear(); // Limpiar obstaculos previos
-    int numObstacles = level; // Número de obstaculos basado en el nivel
-
-    for(int i = 0; i < numObstacles; ++i) 
-    {
-        Pos obstacle;
-        do 
-        {
-            obstacle.x = rand() % anchoTablero;
-            obstacle.y = rand() % altoTablero;
-
-            if (obstacle.x == 0) obstacle.x = 1;
-            if (obstacle.y == 0) obstacle.y = 1;
-        } 
-        while(std::find(snake.begin(), snake.end(), obstacle) != snake.end() || obstacle == food || std::find(obstacles.begin(), obstacles.end(), obstacle) != obstacles.end());
-
-        obstacles.push_back(obstacle);
-    }
-}
-
 void MoveSnake() 
 {
-    Pos newHead = snake[0];
-    if (dir == UP) newHead.y--;
-    else if (dir == DOWN) newHead.y++;
-    else if (dir == LEFT) newHead.x--;
-    else if (dir == RIGHT) newHead.x++;
+    int newHeadX = snakeX[0];
+    int newHeadY = snakeY[0];
+
+    if (dir == UP) newHeadY--;
+    else if (dir == DOWN) newHeadY++;
+    else if (dir == LEFT) newHeadX--;
+    else if (dir == RIGHT) newHeadX++;
 
     // Verificar colisiones
-    if (newHead.x < 1 || newHead.x > anchoTablero || newHead.y < 1 || newHead.y > altoTablero || std::find(snake.begin(), snake.end(), newHead) != snake.end()) 
+    if (newHeadX < 1 || newHeadX > anchoTablero || newHeadY < 1 || newHeadY > altoTablero || checkCollision(newHeadX, newHeadY, snakeX, snakeY)) 
     {
         gameOver = true;
         return;
     }
 
     // Verificar colision con obstaculos
-    if (std::find(obstacles.begin(), obstacles.end(), newHead) != obstacles.end()) 
+    if (checkCollision(newHeadX, newHeadY, obstaclesX, obstaclesY)) 
     {
         gameOver = true;
         return;
     }
 
-    snake.insert(snake.begin(), newHead); // Agregar nueva cabeza
+    snakeX.insert(snakeX.begin(), newHeadX); // Agregar nueva cabeza
+    snakeY.insert(snakeY.begin(), newHeadY);
 
     // Si come comida, crecer (no remover cola); sino, remover cola
-    if (newHead == food || (newHead.x == food.x + 1 && newHead.y == food.y)) 
+    if ((newHeadX == foodX && newHeadY == foodY) || (newHeadX == foodX + 1 && newHeadY == foodY)) 
     {
-        players[selectedPlayer].score++;
-        DrawConsole(anchoTablero+5, 2, "Puntos: " + to_string(players[selectedPlayer].score), true);
+        playerScores[selectedPlayer]++;
+        DrawConsole(anchoTablero+5, 2, "Puntos: " + to_string(playerScores[selectedPlayer]), true);
         generateFood();
     } 
     else 
     {
-        snake.pop_back();
+        int tailX = snakeX.back();
+        int tailY = snakeY.back();
+        DrawConsole(tailX, tailY, " ");
+        snakeX.pop_back();
+        snakeY.pop_back();
     }
 }
 
@@ -548,14 +559,17 @@ void RegisterNewPlayer()
 
     if(playerName.size() > 20) playerName = playerName.substr(0, 20); // Limitar longitud del nombre
 
-    players.push_back({playerName}); // Agregar jugador a la lista
+    playerNames.push_back(playerName);
+    playerScores.push_back(0);
+    playerMaxScores.push_back(0);
+    playerLevels.push_back(1);
 }
 
 bool DisplayPlayerMenu()
 {
     clrscr();
 
-    if (players.empty()) 
+    if (playerNames.empty()) 
     {
         RegisterNewPlayer();        
 
@@ -568,11 +582,11 @@ bool DisplayPlayerMenu()
         clrscr();
         DrawConsole(10, 5, "Selecciona un jugador:");
 
-        for (size_t i = 0; i < players.size(); ++i) 
+        for (size_t i = 0; i < playerNames.size(); ++i) 
         {
-            DrawConsole(10, 7 + i, (i == selectedPlayer ? "> " : "  ") + players[i].name + " (Puntos: " + to_string(players[i].score) + ")");
+            DrawConsole(10, 7 + i, (i == selectedPlayer ? "> " : "  ") + playerNames[i] + " (Puntos: " + to_string(playerScores[i]) + ")");
         }
-        DrawConsole(10, 7 + players.size(), (selectedPlayer == players.size() ? "> Nuevo jugador" : "  Nuevo jugador"), true);
+        DrawConsole(10, 7 + playerNames.size(), (selectedPlayer == playerNames.size() ? "> Nuevo jugador" : "  Nuevo jugador"), true);
 
         int key = 0;
         #ifdef _WIN32
@@ -585,15 +599,15 @@ bool DisplayPlayerMenu()
 
         if (key == 'w' || key == KEY_UP) 
         {
-            selectedPlayer = (selectedPlayer - 1 + players.size() + 1) % (players.size() + 1);
+            selectedPlayer = (selectedPlayer - 1 + playerNames.size() + 1) % (playerNames.size() + 1);
         } 
         else if (key == 's' || key == KEY_DOWN) 
         {
-            selectedPlayer = (selectedPlayer + 1) % (players.size() + 1);
+            selectedPlayer = (selectedPlayer + 1) % (playerNames.size() + 1);
         } 
         else if (key == '\n' || key == KEY_ENTER || key == 10) 
         {
-            if (selectedPlayer == players.size()) 
+            if (selectedPlayer == playerNames.size()) 
             {
                 RegisterNewPlayer();
             }
@@ -606,12 +620,12 @@ bool DisplayPlayerMenu()
 
 void SortPlayers() 
 {
-    for(size_t i = 0; i < players.size() - 1; ++i) 
+    for(size_t i = 0; i < playerNames.size() - 1; ++i) 
     {
         size_t maxIndex = i;
-        for(size_t j = i + 1; j < players.size(); ++j) 
+        for(size_t j = i + 1; j < playerNames.size(); ++j) 
         {
-            if(players[j].name < players[maxIndex].name) 
+            if(playerNames[j] < playerNames[maxIndex]) 
             {
                 maxIndex = j;
             } 
@@ -619,9 +633,10 @@ void SortPlayers()
         // Intercambiar jugadores
         if (maxIndex != i) 
         {
-            Player temp = players[i];
-            players[i] = players[maxIndex];
-            players[maxIndex] = temp;
+            swap(playerNames[i], playerNames[maxIndex]);
+            swap(playerScores[i], playerScores[maxIndex]);
+            swap(playerMaxScores[i], playerMaxScores[maxIndex]);
+            swap(playerLevels[i], playerLevels[maxIndex]);
         }
     }
 }
@@ -629,30 +644,38 @@ void SortPlayers()
 void DisplayTopPlayers()
 {
     clrscr();
-                    
-    if (players.empty()) 
+
+    if (playerNames.empty()) 
     {
         DrawConsole(8, 6, "No hay jugadores registrados.", true);
+
+        DrawConsole(7, 8 + playerNames.size() + 1, "Presiona cualquier tecla para volver al menu.", true);
+        #ifdef _WIN32
+            _getch();
+        #else
+            getch();
+        #endif
+
+        return;
     } 
-    else 
+    
+    SortPlayers(); // Ordenar jugadores
+    DrawConsole(7, 6, "TOP Jugadores:", true);
+    DrawConsole(7, 7, "Nombre               Puntos   Maximo", true);
+    for (size_t i = 0; i < playerNames.size(); ++i) 
     {
-        SortPlayers(); // Ordenar jugadores
-        DrawConsole(7, 6, "TOP Jugadores:", true);
-        DrawConsole(7, 7, "Nombre               Puntos   Maximo", true);
-        for (size_t i = 0; i < players.size(); ++i) 
-        {
-            string line = to_string(i + 1) + ". " + players[i].name;
-            while(line.length() < 21) line += " ";
-            
-            string score = to_string(players[i].score);
-            while(score.length() < 9) score += " ";
-            
-            string maxScore = to_string(players[i].maxScore);
-            
-            DrawConsole(7, 8 + i, line + score + maxScore, true);
-        }
+        string line = to_string(i + 1) + ". " + playerNames[i];
+        while(line.length() < 21) line += " ";
+        
+        string score = to_string(playerScores[i]);
+        while(score.length() < 9) score += " ";
+        
+        string maxScore = to_string(playerMaxScores[i]);
+        
+        DrawConsole(7, 8 + i, line + score + maxScore, true);
     }
-    DrawConsole(7, 8 + players.size() + 1, "Presiona cualquier tecla para volver al menu.", true);
+
+    DrawConsole(7, 8 + playerNames.size() + 1, "Presiona cualquier tecla para volver al menu.", true);
     #ifdef _WIN32
         _getch();
     #else
@@ -672,6 +695,7 @@ void DisplayMenu()
         DrawConsole(10, 7, (option == 0 ? "> Jugar" : "  Jugar"));
         DrawConsole(10, 8, (option == 1 ? "> TOP Jugadores" : "  TOP Jugadores"));
         DrawConsole(10, 9, (option == 2 ? "> Salir" : "  Salir"));
+        
         int key = 0;
         #ifdef _WIN32
             key = _getch();
@@ -711,15 +735,15 @@ void DisplayMenu()
 
 void DisplayGameOverArt() 
 {
-    int size = 4;
-    while (size <= 8) 
+    int size = 5;
+    int startRow = (altoTablero) / 2;
+    int startCol = (anchoTablero) / 2;
+    
+    while (size <= 9) 
     {
         clrscr();
 
-        int startRow = (altoTablero) / 2;
-        int startCol = (anchoTablero) / 2;
-
-        if (size == 6) 
+        if (size == 7) 
         {
             SetConsoleColorRed();
         } 
@@ -750,12 +774,13 @@ void DisplayGameOverArt()
 void DisplayWinArt() 
 {
     int size = 5;
+
+    int startRow = (altoTablero) / 2;
+    int startCol = (anchoTablero) / 2;
+
     for (int i = 0; i < 3; ++i) // Mostrar por 3 segundos
     {
         clrscr();
-
-        int startRow = (altoTablero) / 2;
-        int startCol = (anchoTablero) / 2;
 
         if (i % 2 == 0) 
         {
@@ -788,12 +813,13 @@ void DisplayWinArt()
 void DisplayLevelUpMessage(int level) 
 {
     int size = 5;
+    
+    int startRow = (altoTablero) / 2;
+    int startCol = (anchoTablero) / 2;
+    
     for (int i = 0; i < 3; ++i) // Mostrar por 3 segundos
     {
         clrscr();
-
-        int startRow = (altoTablero) / 2;
-        int startCol = (anchoTablero) / 2;
 
         if (i % 2 == 0) 
         {
@@ -820,7 +846,7 @@ void DisplayLevelUpMessage(int level)
     ResetConsoleColor();
 }
 
-int main()
+int main(void)
 {
     srand(time(0)); // Semilla para rand
 
@@ -842,7 +868,9 @@ int main()
 
     DisplayMenu(); // Mostrar el menú antes de iniciar el juego
 
-    snake.push_back({anchoTablero/2, altoTablero/2});
+    snakeX.push_back(anchoTablero/2);
+    snakeY.push_back(altoTablero/2);
+
     generateFood();
 
     DrawTable(); // Dibuja tablero
@@ -854,36 +882,37 @@ int main()
         DrawSnake(); // Dibujar serpiente
 
         // Dibujar comida
-        DrawConsole(food.x, food.y, "🐁");
+        DrawConsole(foodX, foodY, "🐁");
 
         // Dibujar obstaculos
-        for (const auto& obstacle : obstacles) 
+        for (size_t i = 0; i < obstaclesX.size(); ++i) 
         {
-            DrawConsole(obstacle.x, obstacle.y, "🦡");
+            DrawConsole(obstaclesX[i], obstaclesY[i], "🦡");
         }
 
         // Verificar progreso de nivel
-        if(players[selectedPlayer].score >= players[selectedPlayer].level * scorePerLevel) 
+        if(playerScores[selectedPlayer] >= playerLevels[selectedPlayer] * scorePerLevel) 
         {
-            players[selectedPlayer].level++;
+            playerLevels[selectedPlayer]++;
             
-            DrawConsole(anchoTablero+5, 0, "Nivel: " + to_string(players[selectedPlayer].level), true);
+            DrawConsole(anchoTablero+5, 0, "Nivel: " + to_string(playerLevels[selectedPlayer]), true);
             
-            if(players[selectedPlayer].level == maxLevel) 
+            if(playerLevels[selectedPlayer] == maxLevel) 
             {
-                snake.clear();
-                obstacles.clear();
+                snakeX.clear();
+                snakeY.clear();
+                obstaclesX.clear();
+                obstaclesY.clear();
 
-                players[selectedPlayer].maxScore = players[selectedPlayer].score;
-
+                playerMaxScores[selectedPlayer] = playerScores[selectedPlayer];
 
                 DisplayWinArt();
 
-                players[selectedPlayer].level ++; //Empezar modo infinito
+                playerLevels[selectedPlayer] ++; //Empezar modo infinito
                 
                 break;
             }
-            else DisplayLevelUpMessage(players[selectedPlayer].level);
+            else DisplayLevelUpMessage(playerLevels[selectedPlayer]);
 
             // Aumentar la velocidad al pasar de nivel
             if (snakeSpeed > 50) // Limite minimo de velocidad
@@ -891,7 +920,7 @@ int main()
                 snakeSpeed -= 10; // Reducir el tiempo de espera para aumentar la velocidad
             }
 
-            generateObstacles(players[selectedPlayer].level); // Generar obstaculos para el nuevo nivel
+            generateObstacles(playerLevels[selectedPlayer]); // Generar obstaculos para el nuevo nivel
 
             DrawTable(); // Dibuja tablero
         }
@@ -900,18 +929,20 @@ int main()
         {
             DisplayGameOverArt();
 
-            if(players[selectedPlayer].score > players[selectedPlayer].maxScore) 
+            if(playerScores[selectedPlayer] > playerMaxScores[selectedPlayer]) 
             {
-                players[selectedPlayer].maxScore = players[selectedPlayer].score;
+                playerMaxScores[selectedPlayer] = playerScores[selectedPlayer];
             }
 
-            players[selectedPlayer].score = 0;
-            players[selectedPlayer].level = 1;
+            playerScores[selectedPlayer] = 0;
+            playerLevels[selectedPlayer] = 1;
             snakeSpeed = 200; // Reiniciar la velocidad
 
             gameOver = false;
-            snake.clear();
-            obstacles.clear();
+            snakeX.clear();
+            snakeY.clear();
+            obstaclesX.clear();
+            obstaclesY.clear();
             selectedPlayer = 0;
             main(); //Reiniciamos el juego sin salir del programa
             break;
@@ -920,5 +951,5 @@ int main()
         await(snakeSpeed); // Controlar la velocidad de la serpiente
     }
 
-    return 0;
-}//Jugare yo, se ve mal porque estoy compartiendo el codigo, ahorita probamos en tu pc
+    return 1;
+}
