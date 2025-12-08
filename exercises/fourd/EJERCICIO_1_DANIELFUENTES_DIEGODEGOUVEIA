@@ -1,0 +1,132 @@
+/*
+    Realice un programa que grafique en pantalla un peque;o laberinto con minimo dos obstaculos, dise;e un peque;o personaje, que bien puede ser una letra o una forma de su eleccion. Su personaje debe moverse dentro del laberinto y si choca con uno de los bordes debe informar en pantalla al usuario que perdio. Incluya una meta que al ser alcanzada (Al final del laberinto), muestre en pantalla al usuario que gano y posteriormente resetee el laberinto;
+*/
+#include <iostream>
+#include <CONIO.H>
+#include <WINDOWS.H>
+#include <string>
+
+void gotoxy(int x, int y) 
+{
+    COORD coord;
+    coord.X = x;
+    coord.Y = y;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+}
+
+std::string getxy(int x, int y, DWORD len) 
+{
+    COORD coord;
+    coord.X = x;
+    coord.Y = y;
+
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    std::cout.flush(); // make sure pending output is visible
+
+    std::string out(len, '\0');
+    DWORD read = 0;
+    ReadConsoleOutputCharacterA(h, &out[0], len, coord, &read);
+    out.resize(read);
+    return out;
+}
+
+int main(void)
+{
+    char option = 'Y';
+
+    system("cls");
+
+    const int size = 10;
+
+    do
+    {
+        system("cls");
+
+        for(int x = 0; x < (size*3); x ++)
+        {
+            for(int y = 0; y < size; y ++)
+            {
+                if(x == 0 || y == 0 || x == (size*3) - 1 || y == size - 1 || (x == 5 && y <= size / 2) || (x == 15 && y >= size / 2))
+                {
+                    gotoxy(x, y);
+                    std::cout << "#";
+                }
+            }
+        }
+
+        gotoxy(29, 8);
+        std::cout << "X";
+
+        int pos_x = 1, pos_y = 1, previous_x, previous_y;
+
+        while(option == 'Y' || option == 'y')
+        {
+            gotoxy(pos_x, pos_y);
+            std::cout << "o";
+            int input = getch();
+
+            previous_x = pos_x;
+            previous_y = pos_y;
+
+            switch(input)
+            {
+                case 72: // Arriba
+                {
+                    pos_y -= 1;
+                    break;
+                }
+                case 80: //Abajo
+                {
+                    pos_y += 1;
+                    break;
+                }
+                case 77: //Derecha
+                {
+                    pos_x += 1;
+                    break;
+                }
+                case 75: //Izquierda
+                {
+                    pos_x -= 1;
+                    break;
+                }
+            }
+            std::string obstacle = getxy(pos_x, pos_y, 1);
+
+            if(obstacle[0] == '#')
+            {
+                system("cls");
+                gotoxy(size/2, size/2);
+
+                std::cout << "Perdiste!\n";
+
+                std::cout << "Quieres volver a jugar? (Y/N): ";
+                option = getch();
+
+                break;
+            }
+            if(obstacle[0] == 'X')
+            {
+                system("cls");
+                gotoxy(size/2, size/2);
+
+                std::cout << "Has ganado\n";
+                
+                std::cout << "Quieres volver a jugar? (Y/N): ";
+                option = getch();
+                break;
+            }
+
+            gotoxy(previous_x, previous_y);
+            std::cout << " ";
+            gotoxy(pos_x, pos_y);
+            std::cout << "o";
+
+            continue;
+        }
+    }while (option == 'y' || option == 'y');
+    
+
+    return 1;
+}
