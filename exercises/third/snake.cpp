@@ -12,6 +12,7 @@
 
 #include <locale.h>
 #include <iostream>
+#include <cstdio>
 #include <vector>
 #include <algorithm>
 #include <cstdlib>
@@ -66,6 +67,19 @@ void gotoxy(int x, int y)
     #endif
 }
 
+void HideCursor()
+{
+    #ifdef _WIN32
+        HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+        CONSOLE_CURSOR_INFO info;
+        info.dwSize = 100;
+        info.bVisible = FALSE;
+        SetConsoleCursorInfo(consoleHandle, &info);
+    #else
+        curs_set(0);
+    #endif
+}
+
 void clrscr() 
 {
     #ifdef _WIN32
@@ -88,7 +102,8 @@ void DrawConsole(int x, int y, const string& art, bool refreshScreen = false)
 {
     #ifdef _WIN32
         gotoxy(x, y);
-        cout << art;
+        printf("%s", art.c_str());
+        fflush(stdout);
     #else
         mvaddstr(y, x, art.c_str());
         if(refreshScreen) refresh();
@@ -97,6 +112,25 @@ void DrawConsole(int x, int y, const string& art, bool refreshScreen = false)
 
 void DrawSnake()
 {
+    //Limpiar el interior del tablero cada vez que se dibuje la serpiente
+    #ifdef _WIN32
+        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+        DWORD written;
+        for(int i = 1; i <= altoTablero; i++) 
+        {
+            COORD coord = {1, (SHORT)i};
+            FillConsoleOutputCharacter(hConsole, ' ', anchoTablero, coord, &written);
+        }
+    #else
+        for (int colums = 1; colums < anchoTablero + 1; colums++) 
+        {
+            for (int rows = 1; rows < altoTablero + 1; rows++) 
+            {
+                DrawConsole(colums, rows, " ");
+            }
+        }
+    #endif
+
     string head = "▲"; // Cabeza de la serpiente
     switch(dir)
     {
@@ -133,27 +167,24 @@ void DrawTable()
         {
             if (colums == 0 || colums == anchoTablero + 1 || rows == 0 || rows == altoTablero + 1) 
             {
-                if (colums == 0 && rows == 0) DrawConsole(colums, rows, "┌");
-                else if (colums == anchoTablero + 1 && rows == 0) DrawConsole(colums, rows, "┐");
+                /*if (colums == 0 && rows == 0) DrawConsole(colums, rows, "┌");
+                else if (colums == anchoTablero + 1 && rows == 1) DrawConsole(colums, rows, "┐");
                 else if (colums == 0 && rows == altoTablero + 1) DrawConsole(colums, rows, "└");
-                else if (colums == anchoTablero + 1 && rows == altoTablero + 1) DrawConsole(colums, rows, "┘");
-                else if (rows == 0 || rows == altoTablero + 1) DrawConsole(colums, rows, "─");
-                else DrawConsole(colums, rows, "│");
+                else if (colums == anchoTablero + 1 && rows == altoTablero + 1) DrawConsole(colums, rows, "┘");*/
+                if (rows == 0) DrawConsole(colums, rows, "▁");
+                else if( rows == altoTablero + 1) DrawConsole(colums, rows, "▔");
+                else DrawConsole(colums, rows, "┃");
             }
         }
     }
+    // Mostrar datos del jugador
+    DrawConsole(anchoTablero+5, 0, "Nivel: " + to_string(players[selectedPlayer].level));
+    DrawConsole(anchoTablero+5, 1, "Jugador: " + players[selectedPlayer].name);
+    DrawConsole(anchoTablero+5, 2, "Puntos: " + to_string(players[selectedPlayer].score), true);
 
-    // Dibujar serpiente
-    DrawSnake();
-
-    // Dibujar comida
-    DrawConsole(food.x, food.y, "🐁");
-
-    // Dibujar obstáculos
-    for (const auto& obstacle : obstacles) 
-    {
-        DrawConsole(obstacle.x, obstacle.y, "🦡");
-    }
+    DrawConsole (anchoTablero+5, 4, "Controles:", true);
+    DrawConsole (anchoTablero+5, 5, "W/A/S/D o", true);
+    DrawConsole (anchoTablero+5, 6, "Flechas", true);
 
     #ifndef _WIN32
         refresh();
@@ -223,6 +254,7 @@ void MoveSnake()
     if (newHead == food || (newHead.x == food.x + 1 && newHead.y == food.y)) 
     {
         players[selectedPlayer].score++;
+        DrawConsole(anchoTablero+5, 2, "Puntos: " + to_string(players[selectedPlayer].score), true);
         generateFood();
     } 
     else 
@@ -237,20 +269,20 @@ void HandleInput()
         if (_kbhit()) 
         {
             char key = getch();
-            if (key == 'w' && dir != DOWN) dir = UP;
-            else if (key == 's' && dir != UP) dir = DOWN;
-            else if (key == 'a' && dir != RIGHT) dir = LEFT;
-            else if (key == 'd' && dir != LEFT) dir = RIGHT;
+            if((key == 'w' || key == KEY_UP) && dir != DOWN) dir = UP;
+            else if((key == 's' || key == KEY_DOWN) && dir != UP) dir = DOWN;
+            else if((key == 'a' || key == KEY_LEFT) && dir != RIGHT) dir = LEFT;
+            else if((key == 'd' || key == KEY_RIGHT) && dir != LEFT) dir = RIGHT;
         }
     #else
         nodelay(stdscr, TRUE);
         int key = getch();
         if (key != ERR) 
         {
-            if ((key == 'w' || key == KEY_UP) && dir != DOWN) dir = UP;
-            else if ((key == 's' || key == KEY_DOWN) && dir != UP) dir = DOWN;
-            else if ((key == 'a' || key == KEY_LEFT) && dir != RIGHT) dir = LEFT;
-            else if ((key == 'd' || key == KEY_RIGHT) && dir != LEFT) dir = RIGHT;
+            if((key == 'w' || key == KEY_UP) && dir != DOWN) dir = UP;
+            else if((key == 's' || key == KEY_DOWN) && dir != UP) dir = DOWN;
+            else if((key == 'a' || key == KEY_LEFT) && dir != RIGHT) dir = LEFT;
+            else if((key == 'd' || key == KEY_RIGHT) && dir != LEFT) dir = RIGHT;
         }
     #endif
 }
@@ -661,23 +693,30 @@ void DisplayMenu()
                 case 1: // TOP Jugadores
                 {
                     clrscr();
-                    players.push_back({"DanielFz", 0, 0}); // Añadir marcador final
-
+                    
                     if (players.empty()) 
                     {
-                        DrawConsole(8, 5, "No hay jugadores registrados.", true);
+                        DrawConsole(8, 6, "No hay jugadores registrados.", true);
                     } 
                     else 
                     {
                         SortPlayers(); // Ordenar jugadores
-                        DrawConsole(7, 5, "TOP Jugadores:", true);
-                        DrawConsole(7, 6, "Nombre \t Puntos Actuales \t Puntaje Maximo", true);
+                        DrawConsole(7, 6, "TOP Jugadores:", true);
+                        DrawConsole(7, 7, "Nombre               Puntos   Maximo", true);
                         for (size_t i = 0; i < players.size(); ++i) 
                         {
-                            DrawConsole(7, 7 + i, to_string(i + 1) + ". " + players[i].name + " \t " + to_string(players[i].score) + " \t\t " + to_string(players[i].maxScore), true);
+                            string line = to_string(i + 1) + ". " + players[i].name;
+                            while(line.length() < 21) line += " ";
+                            
+                            string score = to_string(players[i].score);
+                            while(score.length() < 9) score += " ";
+                            
+                            string maxScore = to_string(players[i].maxScore);
+                            
+                            DrawConsole(7, 8 + i, line + score + maxScore, true);
                         }
                     }
-                    DrawConsole(7, 7 + players.size() + 1, "Presiona cualquier tecla para volver al menu.", true);
+                    DrawConsole(7, 8 + players.size() + 1, "Presiona cualquier tecla para volver al menu.", true);
                     #ifdef _WIN32
                         _getch();
                     #else
@@ -820,28 +859,37 @@ int main()
         init_pair(3, COLOR_YELLOW, COLOR_BLACK); // Par de colores para texto amarillo sobre fondo negro
     #endif
 
+    HideCursor();
+
     DisplayMenu(); // Mostrar el menú antes de iniciar el juego
 
     snake.push_back({anchoTablero/2, altoTablero/2});
     generateFood();
 
+    DrawTable(); // Dibuja tablero
+
     while (true) 
     {
-        DrawTable(); // Dibuja tablero, serpiente, comida
-
         HandleInput(); // Leer dirección
-
         MoveSnake();  // Mover y verificar
+        DrawSnake(); // Dibujar serpiente
 
-        // Mostrar datos del jugador
-        DrawConsole(anchoTablero+5, 0, "Nivel: " + to_string(players[selectedPlayer].level));
-        DrawConsole(anchoTablero+5, 1, "Jugador: " + players[selectedPlayer].name);
-        DrawConsole(anchoTablero+5, 2, "Puntos: " + to_string(players[selectedPlayer].score), true);
+        // Dibujar comida
+        DrawConsole(food.x, food.y, "🐁");
+
+        // Dibujar obstáculos
+        for (const auto& obstacle : obstacles) 
+        {
+            DrawConsole(obstacle.x, obstacle.y, "🦡");
+        }
 
         // Verificar progreso de nivel
         if(players[selectedPlayer].score >= players[selectedPlayer].level * pointsPerLevel) 
         {
             players[selectedPlayer].level++;
+            
+            DrawConsole(anchoTablero+5, 0, "Nivel: " + to_string(players[selectedPlayer].level), true);
+            
             if(players[selectedPlayer].level == maxLevel) 
             {
                 snake.clear();
@@ -865,6 +913,8 @@ int main()
             }
 
             generateObstacles(players[selectedPlayer].level); // Generar obstáculos para el nuevo nivel
+
+            DrawTable(); // Dibuja tablero
         }
 
         if(gameOver) 
