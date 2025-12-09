@@ -203,12 +203,13 @@ void DrawTable()
         {
             if (colums == 0 || colums == anchoTablero + 1 || rows == 0 || rows == altoTablero + 1) 
             {
-                if (colums == 0 && rows == 0) DrawConsole(colums, rows, "┌");
-                else if (colums == anchoTablero + 1 && rows == 0) DrawConsole(colums, rows, "┐");
+                /*if (colums == 0 && rows == 0) DrawConsole(colums, rows, "┌");
+                else if (colums == anchoTablero + 1 && rows == 1) DrawConsole(colums, rows, "┐");
                 else if (colums == 0 && rows == altoTablero + 1) DrawConsole(colums, rows, "└");
-                else if (colums == anchoTablero + 1 && rows == altoTablero + 1) DrawConsole(colums, rows, "┘");
-                else if (rows == 0 || rows == altoTablero + 1) DrawConsole(colums, rows, "─");
-                else DrawConsole(colums, rows, "│");
+                else if (colums == anchoTablero + 1 && rows == altoTablero + 1) DrawConsole(colums, rows, "┘");*/
+                if (rows == 0) DrawConsole(colums, rows, "▁");
+                else if( rows == altoTablero + 1) DrawConsole(colums, rows, "▔");
+                else DrawConsole(colums, rows, "┃");
             }
         }
     }
@@ -882,12 +883,12 @@ int main(void)
         DrawSnake(); // Dibujar serpiente
 
         // Dibujar comida
-        DrawConsole(foodX, foodY, "🐁");
+        DrawConsole(foodX, foodY, "🐁", true);
 
         // Dibujar obstaculos
         for (size_t i = 0; i < obstaclesX.size(); ++i) 
         {
-            DrawConsole(obstaclesX[i], obstaclesY[i], "🦡");
+            DrawConsole(obstaclesX[i], obstaclesY[i], "🦡", true);
         }
 
         // Verificar progreso de nivel
